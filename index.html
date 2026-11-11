@@ -1,12 +1,973 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Visitas Museo</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Solicitud de visitas mediadas - Museo Arqueológico de Los Andes</title>
+
+  <style>
+    :root {
+      --burdeos: #801623;
+      --burdeos-oscuro: #64101b;
+      --burdeos-40: rgba(128, 22, 35, 0.4);
+      --fondo: #ffffff;
+      --texto: #333333;
+      --borde: #ded9d6;
+      --gris: #dedede;
+      --gris-texto: #888888;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: var(--fondo);
+      color: var(--texto);
+    }
+
+    header {
+      background: var(--burdeos);
+      color: white;
+      padding: 30px 20px;
+      text-align: center;
+    }
+
+    .logo-museo {
+      display: block;
+      max-width: 180px;
+      max-height: 110px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      margin: 0 auto 15px;
+      mix-blend-mode: screen;
+    }
+
+    header h1 {
+      margin: 0;
+      font-size: 27px;
+    }
+
+    header p {
+      margin: 10px 0 0;
+      font-size: 15px;
+    }
+
+    .contenedor {
+      width: 100%;
+      max-width: 850px;
+      margin: 30px auto;
+      padding: 0 16px;
+    }
+
+    .seccion {
+      background: white;
+      padding: 25px;
+      margin-bottom: 22px;
+      border-radius: 12px;
+      box-shadow: 0 3px 12px rgba(0,0,0,0.05);
+    }
+
+    h2 {
+      color: var(--burdeos);
+      font-size: 21px;
+      margin-top: 0;
+    }
+
+    .descripcion {
+      line-height: 1.6;
+      color: #555;
+    }
+
+    .calendario-cabecera {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin: 22px 0;
+    }
+
+    .calendario-cabecera button {
+      border: 1px solid var(--borde);
+      background: white;
+      color: var(--burdeos);
+      padding: 9px 14px;
+      border-radius: 7px;
+      cursor: pointer;
+      font-size: 17px;
+    }
+
+    #nombreMes {
+      font-weight: bold;
+      text-transform: capitalize;
+    }
+
+    .calendario {
+      display: grid;
+      grid-template-columns: repeat(7, 1fr);
+      gap: 7px;
+    }
+
+    .dia-semana {
+      text-align: center;
+      font-size: 12px;
+      font-weight: bold;
+      color: #666;
+      padding: 8px 0;
+    }
+
+    .dia {
+      min-height: 43px;
+      border: 1px solid var(--gris);
+      border-radius: 7px;
+      background: var(--gris);
+      color: var(--gris-texto);
+      font-size: 14px;
+    }
+
+    .dia.disponible {
+      background: var(--burdeos-40);
+      color: var(--burdeos);
+      border-color: var(--burdeos-40);
+      cursor: pointer;
+      font-weight: bold;
+    }
+
+    .dia.disponible:hover {
+      border-color: var(--burdeos);
+    }
+
+    .dia.seleccionado {
+      background: var(--burdeos);
+      color: white;
+      border-color: var(--burdeos);
+    }
+
+    .dia:disabled {
+      cursor: not-allowed;
+    }
+
+    .leyenda {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 18px;
+      margin-top: 17px;
+      font-size: 13px;
+      color: #666;
+    }
+
+    .punto {
+      display: inline-block;
+      width: 11px;
+      height: 11px;
+      border-radius: 3px;
+      margin-right: 5px;
+    }
+
+    .punto-burdeo {
+      background: var(--burdeos-40);
+    }
+
+    .punto-gris {
+      background: var(--gris);
+    }
+
+    .horarios {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    .horario {
+      padding: 11px 18px;
+      border: 1px solid var(--burdeos);
+      border-radius: 7px;
+      background: white;
+      cursor: pointer;
+      color: var(--burdeos);
+    }
+
+    .horario.seleccionado {
+      background: var(--burdeos);
+      color: white;
+      border-color: var(--burdeos);
+    }
+
+    .campo {
+      margin-bottom: 17px;
+    }
+
+    label {
+      display: block;
+      font-weight: bold;
+      font-size: 14px;
+      margin-bottom: 7px;
+    }
+
+    input, textarea, select {
+      width: 100%;
+      padding: 12px;
+      border: 1px solid var(--borde);
+      border-radius: 7px;
+      font-family: inherit;
+      font-size: 15px;
+      background: white;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 90px;
+    }
+
+    input:focus, textarea:focus, select:focus {
+      outline: 2px solid var(--burdeos-40);
+      border-color: var(--burdeos);
+    }
+
+    .boton-enviar {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 8px;
+      background: var(--burdeos);
+      color: white;
+      font-size: 16px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .boton-enviar:hover {
+      background: var(--burdeos-oscuro);
+    }
+
+    .boton-enviar:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .mensaje {
+      margin-top: 16px;
+      padding: 13px;
+      border-radius: 7px;
+      display: none;
+      line-height: 1.5;
+    }
+
+    .mensaje.error {
+      display: block;
+      background: white;
+      border: 1px solid var(--burdeos);
+      color: var(--burdeos);
+    }
+
+    .mensaje.exito {
+      display: block;
+      background: var(--burdeos-40);
+      color: var(--burdeos);
+    }
+
+    .boton-instructivo {
+      display: inline-block;
+      margin-top: 14px;
+      padding: 12px 18px;
+      background: var(--burdeos);
+      color: white;
+      text-decoration: none;
+      border-radius: 7px;
+      font-weight: bold;
+    }
+
+    .boton-instructivo:hover {
+      background: var(--burdeos-oscuro);
+    }
+
+    .ayuda {
+      color: #777;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    footer {
+      text-align: center;
+      padding: 25px 15px;
+      color: #777;
+      font-size: 13px;
+    }
+
+    @media (max-width: 500px) {
+      header h1 {
+        font-size: 22px;
+      }
+
+      .seccion {
+        padding: 18px;
+      }
+
+      .calendario {
+        gap: 4px;
+      }
+
+      .dia {
+        min-height: 38px;
+        font-size: 12px;
+      }
+
+      .dia-semana {
+        font-size: 10px;
+      }
+    }
+  </style>
 </head>
+
 <body>
-  <h1>Museo Arqueológico de Los Andes</h1>
-  <p>Prueba de acceso web.</p>
+
+  <header>
+    <img
+      class="logo-museo"
+      src="https://drive.google.com/uc?export=view&id=1awOa8lsCAqeIaqbryJL1xdo09pxASJtS"
+      alt="Logotipo del Museo Arqueológico de Los Andes"
+    >
+
+    <h1>Museo Arqueológico de Los Andes</h1>
+    <p>Solicitud de visitas mediadas</p>
+  </header>
+
+  <main class="contenedor">
+
+    <section class="seccion">
+      <h2>Solicita una visita</h2>
+
+      <p class="descripcion">
+        Te invitamos a conocer el patrimonio arqueológico
+        y cultural de nuestro territorio mediante una visita
+        mediada en el Museo Arqueológico de Los Andes.
+      </p>
+
+      <p class="ayuda">
+        Las visitas se realizan miércoles, jueves y viernes.
+        Las solicitudes deben enviarse con al menos 7 días
+        de anticipación. La fecha seleccionada queda sujeta
+        a revisión y confirmación del Museo.
+      </p>
+    </section>
+
+    <section class="seccion">
+      <h2>1. Selecciona una fecha</h2>
+
+      <div class="calendario-cabecera">
+        <button type="button" onclick="cambiarMes(-1)">&#10094;</button>
+        <span id="nombreMes">Cargando...</span>
+        <button type="button" onclick="cambiarMes(1)">&#10095;</button>
+      </div>
+
+      <div class="calendario" id="calendario"></div>
+
+      <div class="leyenda">
+        <span><span class="punto punto-burdeo"></span>Disponible</span>
+        <span><span class="punto punto-gris"></span>No disponible</span>
+      </div>
+
+      <p id="estadoCalendario" class="ayuda">
+        Consultando disponibilidad...
+      </p>
+    </section>
+
+    <section class="seccion">
+      <h2>2. Selecciona un horario</h2>
+
+      <p id="fechaSeleccionada" class="ayuda">
+        Primero selecciona una fecha en el calendario.
+      </p>
+
+      <div id="horarios" class="horarios"></div>
+    </section>
+
+    <section class="seccion">
+      <h2>3. Datos de la institución</h2>
+
+      <form id="formulario">
+
+        <div class="campo">
+          <label for="nombreInstitucion">Nombre de la institución *</label>
+          <input id="nombreInstitucion" required>
+        </div>
+
+        <div class="campo">
+          <label for="direccion">Dirección *</label>
+          <input id="direccion" required>
+        </div>
+
+        <div class="campo">
+          <label for="comuna">Comuna *</label>
+          <input id="comuna" required>
+        </div>
+
+        <div class="campo">
+          <label for="region">Región *</label>
+          <input id="region" required>
+        </div>
+
+        <div class="campo">
+          <label for="telefonoInstitucion">Teléfono institucional *</label>
+          <input id="telefonoInstitucion" type="tel" required>
+        </div>
+
+        <div class="campo">
+          <label for="correoInstitucion">Correo institucional *</label>
+          <input id="correoInstitucion" type="email" required>
+        </div>
+
+        <div class="campo">
+          <label for="curso">Curso o nivel del grupo *</label>
+          <input id="curso" required>
+        </div>
+
+        <div class="campo">
+          <label for="temaObjetivo">Tema u objetivo de la visita *</label>
+          <textarea id="temaObjetivo" required></textarea>
+        </div>
+
+        <div class="campo">
+          <label for="perfilGrupo">Perfil del grupo *</label>
+          <input
+            id="perfilGrupo"
+            placeholder="Cantidad de participantes y características del grupo"
+            required
+          >
+        </div>
+
+        <h2>4. Datos de la persona responsable</h2>
+
+        <div class="campo">
+          <label for="nombreResponsable">Nombre de la persona responsable *</label>
+          <input id="nombreResponsable" required>
+        </div>
+
+        <div class="campo">
+          <label for="celularResponsable">Celular de la persona responsable *</label>
+          <input id="celularResponsable" type="tel" required>
+        </div>
+
+        <div class="campo">
+          <label for="correoResponsable">Correo de la persona responsable *</label>
+          <input id="correoResponsable" type="email" required>
+        </div>
+
+        <div class="campo">
+          <label for="observaciones">Observaciones</label>
+          <textarea
+            id="observaciones"
+            placeholder="Información adicional que debamos considerar."
+          ></textarea>
+        </div>
+
+        <p class="ayuda">
+          Los campos marcados con * son obligatorios.
+          El envío de este formulario no significa que la
+          visita esté confirmada.
+        </p>
+
+        <button
+          class="boton-enviar"
+          id="botonEnviar"
+          type="submit"
+        >
+          Enviar solicitud
+        </button>
+
+        <div
+          id="mensajeFormulario"
+          class="mensaje"
+          role="status"
+          aria-live="polite"
+        ></div>
+
+      </form>
+    </section>
+
+  </main>
+
+  <footer>
+    Museo Arqueológico de Los Andes
+  </footer>
+
+  <!-- Marco oculto para recibir la respuesta del servidor. -->
+  <iframe
+    id="iframeRespuesta"
+    name="iframeRespuesta"
+    title="Respuesta del servidor"
+    style="display:none"
+  ></iframe>
+
+  <script>
+    // Dirección del backend de Google Apps Script.
+    const URL_BACKEND =
+      "https://script.google.com/macros/s/AKfycbzCU3T2wYBSrnibu7zyWZFOi8caoizjsEwyB3-suAa2BQ7NXczCgFbEjab_-sHRLtiA/exec";
+
+    const URL_INSTRUCTIVO =
+      "https://drive.google.com/uc?export=download&id=1u_boAa1zJal1cRRz7OraV2EI1wG7bWXe";
+
+    let fechaActual = new Date();
+    let fechaElegida = "";
+    let horarioElegido = "";
+    let diasMes = [];
+    let envioEnCurso = false;
+    let temporizadorEnvio = null;
+
+    const nombresMeses = [
+      "enero", "febrero", "marzo", "abril",
+      "mayo", "junio", "julio", "agosto",
+      "septiembre", "octubre", "noviembre", "diciembre"
+    ];
+
+    const diasSemana = [
+      "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"
+    ];
+
+    function formatoFecha(anio, mes, dia) {
+      return anio + "-" +
+        String(mes).padStart(2, "0") + "-" +
+        String(dia).padStart(2, "0");
+    }
+
+    /**
+     * Consulta JSONP al backend de Apps Script.
+     */
+    function consultarBackend(parametros, callbackExito, callbackError) {
+      const nombreCallback =
+        "visitasCallback_" + Date.now() + "_" +
+        Math.floor(Math.random() * 100000);
+
+      const script = document.createElement("script");
+
+      let finalizado = false;
+
+      const limpiar = function() {
+        finalizado = true;
+        delete window[nombreCallback];
+        script.remove();
+      };
+
+      window[nombreCallback] = function(respuesta) {
+        if (finalizado) return;
+
+        limpiar();
+        callbackExito(respuesta);
+      };
+
+      script.onerror = function() {
+        if (finalizado) return;
+
+        limpiar();
+        callbackError(new Error("No fue posible conectar con el servidor."));
+      };
+
+      const consulta = new URLSearchParams({
+        ...parametros,
+        callback: nombreCallback,
+        _: Date.now()
+      });
+
+      script.src = URL_BACKEND + "?" + consulta.toString();
+
+      const temporizador = setTimeout(function() {
+        if (finalizado) return;
+
+        limpiar();
+        callbackError(new Error("La consulta tardó demasiado tiempo."));
+      }, 20000);
+
+      const finalizarTemporizador = function() {
+        clearTimeout(temporizador);
+      };
+
+      script.addEventListener("load", finalizarTemporizador, { once: true });
+
+      document.body.appendChild(script);
+    }
+
+    /**
+     * Carga la disponibilidad mensual.
+     */
+    function cargarMes() {
+      const anio = fechaActual.getFullYear();
+      const mes = fechaActual.getMonth() + 1;
+      const mesTexto = formatoFecha(anio, mes, 1).substring(0, 7);
+
+      document.getElementById("nombreMes").textContent =
+        nombresMeses[mes - 1] + " " + anio;
+
+      document.getElementById("estadoCalendario").textContent =
+        "Consultando disponibilidad...";
+
+      document.getElementById("calendario").innerHTML = "";
+      diasMes = [];
+
+      consultarBackend(
+        { accion: "mes", mes: mesTexto },
+
+        function(respuesta) {
+          if (!respuesta || !Array.isArray(respuesta.dias)) {
+            document.getElementById("estadoCalendario").textContent =
+              "No fue posible cargar el calendario.";
+
+            return;
+          }
+
+          diasMes = respuesta.dias;
+          dibujarCalendario();
+
+          document.getElementById("estadoCalendario").textContent =
+            "Selecciona uno de los días disponibles.";
+        },
+
+        function(error) {
+          document.getElementById("estadoCalendario").textContent =
+            "Error al consultar la disponibilidad: " + error.message;
+
+          console.error(error);
+        }
+      );
+    }
+
+    function dibujarCalendario() {
+      const calendario = document.getElementById("calendario");
+      calendario.innerHTML = "";
+
+      diasSemana.forEach(nombre => {
+        const elemento = document.createElement("div");
+        elemento.className = "dia-semana";
+        elemento.textContent = nombre;
+        calendario.appendChild(elemento);
+      });
+
+      const anio = fechaActual.getFullYear();
+      const mes = fechaActual.getMonth();
+
+      const primerDia =
+        (new Date(anio, mes, 1).getDay() + 6) % 7;
+
+      for (let i = 0; i < primerDia; i++) {
+        calendario.appendChild(document.createElement("div"));
+      }
+
+      diasMes.forEach(dia => {
+        const numero = Number(dia.fecha.substring(8, 10));
+
+        const boton = document.createElement("button");
+        boton.type = "button";
+        boton.className = "dia";
+        boton.textContent = numero;
+
+        if (dia.disponible === true) {
+          boton.classList.add("disponible");
+          boton.disabled = false;
+
+          boton.addEventListener("click", function() {
+            seleccionarFecha(dia.fecha);
+          });
+        } else {
+          boton.disabled = true;
+        }
+
+        if (dia.fecha === fechaElegida) {
+          boton.classList.add("seleccionado");
+        }
+
+        calendario.appendChild(boton);
+      });
+    }
+
+    function cambiarMes(direccion) {
+      fechaActual.setDate(1);
+      fechaActual.setMonth(fechaActual.getMonth() + direccion);
+
+      fechaElegida = "";
+      horarioElegido = "";
+
+      document.getElementById("fechaSeleccionada").textContent =
+        "Primero selecciona una fecha en el calendario.";
+
+      document.getElementById("horarios").innerHTML = "";
+
+      cargarMes();
+    }
+
+    /**
+     * Consulta los horarios de una fecha.
+     */
+    function seleccionarFecha(fecha) {
+      fechaElegida = fecha;
+      horarioElegido = "";
+
+      document.getElementById("fechaSeleccionada").textContent =
+        "Fecha seleccionada: " + fecha;
+
+      document.getElementById("horarios").textContent =
+        "Consultando horarios...";
+
+      dibujarCalendario();
+
+      consultarBackend(
+        { accion: "fecha", fecha: fecha },
+
+        function(respuesta) {
+          mostrarHorarios(respuesta);
+        },
+
+        function(error) {
+          document.getElementById("horarios").textContent =
+            "No fue posible consultar los horarios: " + error.message;
+
+          console.error(error);
+        }
+      );
+    }
+
+    function mostrarHorarios(respuesta) {
+      const contenedor = document.getElementById("horarios");
+      contenedor.innerHTML = "";
+
+      if (!respuesta || !respuesta.disponible) {
+        contenedor.textContent =
+          respuesta && respuesta.motivo
+            ? respuesta.motivo
+            : "No hay horarios disponibles.";
+
+        fechaElegida = "";
+        dibujarCalendario();
+        return;
+      }
+
+      if (!Array.isArray(respuesta.horarios) ||
+          respuesta.horarios.length === 0) {
+        contenedor.textContent = "No hay horarios disponibles.";
+        return;
+      }
+
+      respuesta.horarios.forEach(horario => {
+        const boton = document.createElement("button");
+
+        boton.type = "button";
+        boton.className = "horario";
+        boton.textContent = horario;
+
+        boton.addEventListener("click", function() {
+          horarioElegido = horario;
+
+          document.querySelectorAll(".horario").forEach(elemento => {
+            elemento.classList.remove("seleccionado");
+          });
+
+          boton.classList.add("seleccionado");
+        });
+
+        contenedor.appendChild(boton);
+      });
+    }
+
+    function valor(id) {
+      return document.getElementById(id).value.trim();
+    }
+
+    function mostrarMensaje(texto, tipo) {
+      const mensaje = document.getElementById("mensajeFormulario");
+
+      mensaje.innerHTML = "";
+      mensaje.textContent = texto;
+      mensaje.className = "mensaje " + tipo;
+    }
+
+    function mostrarExitoConInstructivo(texto) {
+      const mensaje = document.getElementById("mensajeFormulario");
+
+      mensaje.innerHTML = "";
+      mensaje.className = "mensaje exito";
+
+      const textoMensaje = document.createElement("p");
+      textoMensaje.textContent = texto;
+      mensaje.appendChild(textoMensaje);
+
+      const enlace = document.createElement("a");
+
+      enlace.href = URL_INSTRUCTIVO;
+      enlace.target = "_blank";
+      enlace.rel = "noopener";
+      enlace.className = "boton-instructivo";
+      enlace.textContent = "Descargar instructivo PDF";
+
+      mensaje.appendChild(enlace);
+    }
+
+    function finalizarEnvio() {
+      clearTimeout(temporizadorEnvio);
+
+      envioEnCurso = false;
+
+      const boton = document.getElementById("botonEnviar");
+      boton.disabled = false;
+      boton.textContent = "Enviar solicitud";
+    }
+
+    /**
+     * Recibe la respuesta del backend dentro del iframe.
+     */
+    window.addEventListener("message", function(evento) {
+      const iframe = document.getElementById("iframeRespuesta");
+
+      if (evento.source !== iframe.contentWindow) return;
+
+      const mensaje = evento.data;
+
+      if (!mensaje ||
+          mensaje.tipo !== "RESPUESTA_VISITAS_MUSEO") {
+        return;
+      }
+
+      clearTimeout(temporizadorEnvio);
+
+      const respuesta = mensaje.respuesta;
+
+      finalizarEnvio();
+
+      if (respuesta && respuesta.exito) {
+        mostrarExitoConInstructivo(
+          respuesta.mensaje ||
+          "Tu solicitud fue registrada correctamente."
+        );
+
+        document.getElementById("formulario").reset();
+
+        fechaElegida = "";
+        horarioElegido = "";
+
+        document.getElementById("fechaSeleccionada").textContent =
+          "Primero selecciona una fecha en el calendario.";
+
+        document.getElementById("horarios").innerHTML = "";
+
+        cargarMes();
+
+      } else {
+        mostrarMensaje(
+          respuesta && respuesta.mensaje
+            ? respuesta.mensaje
+            : "No fue posible registrar la solicitud.",
+          "error"
+        );
+      }
+    });
+
+    /**
+     * Envía los datos mediante un formulario oculto.
+     * Los datos no se incorporan a la dirección URL.
+     */
+    function enviarSolicitud(datos) {
+      const formularioEnvio = document.createElement("form");
+
+      formularioEnvio.method = "POST";
+      formularioEnvio.action = URL_BACKEND;
+      formularioEnvio.target = "iframeRespuesta";
+      formularioEnvio.acceptCharset = "UTF-8";
+      formularioEnvio.style.display = "none";
+
+      const campoDatos = document.createElement("input");
+
+      campoDatos.type = "hidden";
+      campoDatos.name = "datos";
+      campoDatos.value = JSON.stringify(datos);
+
+      formularioEnvio.appendChild(campoDatos);
+      document.body.appendChild(formularioEnvio);
+
+      formularioEnvio.submit();
+
+      formularioEnvio.remove();
+    }
+
+    document.getElementById("formulario")
+      .addEventListener("submit", function(evento) {
+
+        evento.preventDefault();
+
+        if (envioEnCurso) return;
+
+        if (!fechaElegida) {
+          mostrarMensaje(
+            "Selecciona una fecha disponible.",
+            "error"
+          );
+          return;
+        }
+
+        if (!horarioElegido) {
+          mostrarMensaje(
+            "Selecciona un horario para la visita.",
+            "error"
+          );
+          return;
+        }
+
+        const datos = {
+          fechaVisita: fechaElegida,
+          horarioVisita: horarioElegido,
+          nombreInstitucion: valor("nombreInstitucion"),
+          direccion: valor("direccion"),
+          comuna: valor("comuna"),
+          region: valor("region"),
+          telefonoInstitucion: valor("telefonoInstitucion"),
+          correoInstitucion: valor("correoInstitucion"),
+          curso: valor("curso"),
+          temaObjetivo: valor("temaObjetivo"),
+          perfilGrupo: valor("perfilGrupo"),
+          nombreResponsable: valor("nombreResponsable"),
+          celularResponsable: valor("celularResponsable"),
+          correoResponsable: valor("correoResponsable"),
+          observaciones: valor("observaciones")
+        };
+
+        envioEnCurso = true;
+
+        const boton = document.getElementById("botonEnviar");
+        boton.disabled = true;
+        boton.textContent = "Enviando solicitud...";
+
+        mostrarMensaje(
+          "Estamos enviando tu solicitud. Espera un momento.",
+          "exito"
+        );
+
+        temporizadorEnvio = setTimeout(function() {
+          finalizarEnvio();
+
+          mostrarMensaje(
+            "No recibimos confirmación del servidor. Antes de volver a enviar, verifica si la solicitud fue recibida por el Museo.",
+            "error"
+          );
+        }, 45000);
+
+        try {
+          enviarSolicitud(datos);
+        } catch (error) {
+          finalizarEnvio();
+
+          mostrarMensaje(
+            "Ocurrió un error al enviar la solicitud.",
+            "error"
+          );
+
+          console.error(error);
+        }
+      });
+
+    cargarMes();
+  </script>
+
 </body>
 </html>
