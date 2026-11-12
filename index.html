@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -250,6 +251,28 @@
       cursor: wait;
     }
 
+    .boton-secundario {
+      width: 100%;
+      padding: 13px;
+      border: 1px solid var(--burdeos);
+      border-radius: 8px;
+      background: white;
+      color: var(--burdeos);
+      font-size: 15px;
+      font-weight: bold;
+      cursor: pointer;
+      margin-top: 10px;
+    }
+
+    .boton-secundario:hover {
+      background: #f8eeee;
+    }
+
+    .boton-secundario:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
     .mensaje {
       margin-top: 16px;
       padding: 13px;
@@ -284,6 +307,31 @@
 
     .boton-instructivo:hover {
       background: var(--burdeos-oscuro);
+    }
+
+    .resumen-revision {
+      line-height: 1.6;
+    }
+
+    .resumen-revision h3 {
+      color: var(--burdeos);
+      font-size: 16px;
+      margin: 24px 0 8px;
+    }
+
+    .resumen-revision h3:first-child {
+      margin-top: 10px;
+    }
+
+    .resumen-revision p {
+      padding: 9px 0;
+      border-bottom: 1px solid var(--borde);
+      margin: 0;
+      overflow-wrap: anywhere;
+    }
+
+    .resumen-revision strong {
+      color: var(--burdeos);
     }
 
     .ayuda {
@@ -387,7 +435,7 @@
       <div id="horarios" class="horarios"></div>
     </section>
 
-    <section class="seccion">
+    <section class="seccion" id="seccionFormulario">
       <h2>3. Datos de la institución</h2>
 
       <form id="formulario">
@@ -474,10 +522,10 @@
 
         <button
           class="boton-enviar"
-          id="botonEnviar"
+          id="botonRevisar"
           type="submit"
         >
-          Enviar solicitud
+          Revisar solicitud
         </button>
 
         <div
@@ -490,13 +538,58 @@
       </form>
     </section>
 
+    <section
+      class="seccion"
+      id="revisionSolicitud"
+      style="display:none"
+    >
+      <h2>5. Revisa tu solicitud</h2>
+
+      <p class="descripcion">
+        Antes de enviar, revisa que los datos estén correctos.
+        Si necesitas cambiar algo, puedes volver al formulario.
+      </p>
+
+      <div
+        id="resumenRevision"
+        class="resumen-revision"
+      ></div>
+
+      <p class="ayuda">
+        Al confirmar, la solicitud será enviada al Museo
+        para su revisión. La visita todavía no estará confirmada.
+      </p>
+
+      <button
+        type="button"
+        class="boton-secundario"
+        id="volverEditar"
+      >
+        Volver a editar
+      </button>
+
+      <button
+        type="button"
+        class="boton-enviar"
+        id="confirmarEnvio"
+      >
+        Confirmar y enviar solicitud
+      </button>
+
+      <div
+        id="mensajeRevision"
+        class="mensaje"
+        role="status"
+        aria-live="polite"
+      ></div>
+    </section>
+
   </main>
 
   <footer>
     Museo Arqueológico de Los Andes
   </footer>
 
-  <!-- Marco oculto para recibir la respuesta del servidor. -->
   <iframe
     id="iframeRespuesta"
     name="iframeRespuesta"
@@ -505,9 +598,8 @@
   ></iframe>
 
   <script>
-    // Dirección del backend de Google Apps Script.
     const URL_BACKEND =
-  "https://visitas-museo-api.arqueologico.workers.dev";
+      "https://visitas-museo-api.arqueologico.workers.dev";
 
     const URL_INSTRUCTIVO =
       "https://drive.google.com/uc?export=download&id=1u_boAa1zJal1cRRz7OraV2EI1wG7bWXe";
@@ -518,6 +610,7 @@
     let diasMes = [];
     let envioEnCurso = false;
     let temporizadorEnvio = null;
+    let datosPendientes = null;
 
     const nombresMeses = [
       "enero", "febrero", "marzo", "abril",
@@ -535,9 +628,6 @@
         String(dia).padStart(2, "0");
     }
 
-    /**
-     * Consulta JSONP al backend de Apps Script.
-     */
     function consultarBackend(parametros, callbackExito, callbackError) {
       const nombreCallback =
         "visitasCallback_" + Date.now() + "_" +
@@ -547,8 +637,16 @@
 
       let finalizado = false;
 
+      const temporizador = setTimeout(function() {
+        if (finalizado) return;
+
+        limpiar();
+        callbackError(new Error("La consulta tardó demasiado tiempo."));
+      }, 20000);
+
       const limpiar = function() {
         finalizado = true;
+        clearTimeout(temporizador);
         delete window[nombreCallback];
         script.remove();
       };
@@ -575,25 +673,9 @@
 
       script.src = URL_BACKEND + "?" + consulta.toString();
 
-      const temporizador = setTimeout(function() {
-        if (finalizado) return;
-
-        limpiar();
-        callbackError(new Error("La consulta tardó demasiado tiempo."));
-      }, 20000);
-
-      const finalizarTemporizador = function() {
-        clearTimeout(temporizador);
-      };
-
-      script.addEventListener("load", finalizarTemporizador, { once: true });
-
       document.body.appendChild(script);
     }
 
-    /**
-     * Carga la disponibilidad mensual.
-     */
     function cargarMes() {
       const anio = fechaActual.getFullYear();
       const mes = fechaActual.getMonth() + 1;
@@ -698,9 +780,6 @@
       cargarMes();
     }
 
-    /**
-     * Consulta los horarios de una fecha.
-     */
     function seleccionarFecha(fecha) {
       fechaElegida = fecha;
       horarioElegido = "";
@@ -717,10 +796,14 @@
         { accion: "fecha", fecha: fecha },
 
         function(respuesta) {
-          mostrarHorarios(respuesta);
+          if (fechaElegida === fecha) {
+            mostrarHorarios(respuesta);
+          }
         },
 
         function(error) {
+          if (fechaElegida !== fecha) return;
+
           document.getElementById("horarios").textContent =
             "No fue posible consultar los horarios: " + error.message;
 
@@ -783,6 +866,14 @@
       mensaje.className = "mensaje " + tipo;
     }
 
+    function mostrarMensajeRevision(texto, tipo) {
+      const mensaje = document.getElementById("mensajeRevision");
+
+      mensaje.innerHTML = "";
+      mensaje.textContent = texto;
+      mensaje.className = "mensaje " + tipo;
+    }
+
     function mostrarExitoConInstructivo(texto) {
       const mensaje = document.getElementById("mensajeFormulario");
 
@@ -809,14 +900,125 @@
 
       envioEnCurso = false;
 
-      const boton = document.getElementById("botonEnviar");
+      const boton = document.getElementById("confirmarEnvio");
       boton.disabled = false;
-      boton.textContent = "Enviar solicitud";
+      boton.textContent = "Confirmar y enviar solicitud";
     }
 
-    /**
-     * Recibe la respuesta del backend dentro del iframe.
-     */
+    function agregarDatoResumen(contenedor, etiqueta, contenido) {
+      const parrafo = document.createElement("p");
+      const titulo = document.createElement("strong");
+
+      titulo.textContent = etiqueta + ": ";
+
+      parrafo.appendChild(titulo);
+      parrafo.appendChild(
+        document.createTextNode(contenido || "No indicado")
+      );
+
+      contenedor.appendChild(parrafo);
+    }
+
+    function agregarSeccionResumen(contenedor, titulo) {
+      const encabezado = document.createElement("h3");
+      encabezado.textContent = titulo;
+      contenedor.appendChild(encabezado);
+    }
+
+    function mostrarRevision(datos) {
+      const resumen = document.getElementById("resumenRevision");
+      resumen.innerHTML = "";
+
+      agregarSeccionResumen(resumen, "1. Datos de la visita");
+      agregarDatoResumen(resumen, "Fecha", datos.fechaVisita);
+      agregarDatoResumen(resumen, "Horario", datos.horarioVisita);
+
+      agregarSeccionResumen(resumen, "2. Datos de la institución");
+      agregarDatoResumen(resumen, "Institución", datos.nombreInstitucion);
+      agregarDatoResumen(resumen, "Dirección", datos.direccion);
+      agregarDatoResumen(resumen, "Comuna", datos.comuna);
+      agregarDatoResumen(resumen, "Región", datos.region);
+      agregarDatoResumen(resumen, "Teléfono institucional", datos.telefonoInstitucion);
+      agregarDatoResumen(resumen, "Correo institucional", datos.correoInstitucion);
+
+      agregarSeccionResumen(resumen, "3. Información del grupo");
+      agregarDatoResumen(resumen, "Curso o nivel", datos.curso);
+      agregarDatoResumen(resumen, "Tema u objetivo", datos.temaObjetivo);
+      agregarDatoResumen(resumen, "Perfil del grupo", datos.perfilGrupo);
+
+      agregarSeccionResumen(resumen, "4. Persona responsable");
+      agregarDatoResumen(resumen, "Nombre", datos.nombreResponsable);
+      agregarDatoResumen(resumen, "Celular", datos.celularResponsable);
+      agregarDatoResumen(resumen, "Correo electrónico", datos.correoResponsable);
+
+      agregarSeccionResumen(resumen, "5. Observaciones");
+      agregarDatoResumen(resumen, "Observaciones", datos.observaciones || "Sin observaciones.");
+
+      document.getElementById("seccionFormulario").style.display = "none";
+      document.getElementById("revisionSolicitud").style.display = "block";
+
+      mostrarMensajeRevision("", "");
+      document.getElementById("revisionSolicitud").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+
+    function volverAlFormulario() {
+      document.getElementById("revisionSolicitud").style.display = "none";
+      document.getElementById("seccionFormulario").style.display = "block";
+
+      mostrarMensajeRevision("", "");
+
+      document.getElementById("seccionFormulario").scrollIntoView({
+        behavior: "smooth",
+        block: "start"
+      });
+    }
+
+    function recopilarDatos() {
+      return {
+        fechaVisita: fechaElegida,
+        horarioVisita: horarioElegido,
+        nombreInstitucion: valor("nombreInstitucion"),
+        direccion: valor("direccion"),
+        comuna: valor("comuna"),
+        region: valor("region"),
+        telefonoInstitucion: valor("telefonoInstitucion"),
+        correoInstitucion: valor("correoInstitucion"),
+        curso: valor("curso"),
+        temaObjetivo: valor("temaObjetivo"),
+        perfilGrupo: valor("perfilGrupo"),
+        nombreResponsable: valor("nombreResponsable"),
+        celularResponsable: valor("celularResponsable"),
+        correoResponsable: valor("correoResponsable"),
+        observaciones: valor("observaciones")
+      };
+    }
+
+    function enviarSolicitud(datos) {
+      const formularioEnvio = document.createElement("form");
+
+      formularioEnvio.method = "POST";
+      formularioEnvio.action = URL_BACKEND;
+      formularioEnvio.target = "iframeRespuesta";
+      formularioEnvio.acceptCharset = "UTF-8";
+      formularioEnvio.style.display = "none";
+
+      const campoDatos = document.createElement("input");
+
+      campoDatos.type = "hidden";
+      campoDatos.name = "datos";
+      campoDatos.value = JSON.stringify(datos);
+
+      formularioEnvio.appendChild(campoDatos);
+      document.body.appendChild(formularioEnvio);
+
+      formularioEnvio.submit();
+
+      formularioEnvio.remove();
+    }
+
     window.addEventListener("message", function(evento) {
       const iframe = document.getElementById("iframeRespuesta");
 
@@ -843,6 +1045,7 @@
 
         document.getElementById("formulario").reset();
 
+        datosPendientes = null;
         fechaElegida = "";
         horarioElegido = "";
 
@@ -851,10 +1054,18 @@
 
         document.getElementById("horarios").innerHTML = "";
 
+        document.getElementById("revisionSolicitud").style.display = "none";
+        document.getElementById("seccionFormulario").style.display = "block";
+
+        document.getElementById("seccionFormulario").scrollIntoView({
+          behavior: "smooth",
+          block: "start"
+        });
+
         cargarMes();
 
       } else {
-        mostrarMensaje(
+        mostrarMensajeRevision(
           respuesta && respuesta.mensaje
             ? respuesta.mensaje
             : "No fue posible registrar la solicitud.",
@@ -862,33 +1073,6 @@
         );
       }
     });
-
-    /**
-     * Envía los datos mediante un formulario oculto.
-     * Los datos no se incorporan a la dirección URL.
-     */
-    function enviarSolicitud(datos) {
-      const formularioEnvio = document.createElement("form");
-
-      formularioEnvio.method = "POST";
-      formularioEnvio.action = URL_BACKEND;
-      formularioEnvio.target = "iframeRespuesta";
-      formularioEnvio.acceptCharset = "UTF-8";
-      formularioEnvio.style.display = "none";
-
-      const campoDatos = document.createElement("input");
-
-      campoDatos.type = "hidden";
-      campoDatos.name = "datos";
-      campoDatos.value = JSON.stringify(datos);
-
-      formularioEnvio.appendChild(campoDatos);
-      document.body.appendChild(formularioEnvio);
-
-      formularioEnvio.submit();
-
-      formularioEnvio.remove();
-    }
 
     document.getElementById("formulario")
       .addEventListener("submit", function(evento) {
@@ -913,31 +1097,27 @@
           return;
         }
 
-        const datos = {
-          fechaVisita: fechaElegida,
-          horarioVisita: horarioElegido,
-          nombreInstitucion: valor("nombreInstitucion"),
-          direccion: valor("direccion"),
-          comuna: valor("comuna"),
-          region: valor("region"),
-          telefonoInstitucion: valor("telefonoInstitucion"),
-          correoInstitucion: valor("correoInstitucion"),
-          curso: valor("curso"),
-          temaObjetivo: valor("temaObjetivo"),
-          perfilGrupo: valor("perfilGrupo"),
-          nombreResponsable: valor("nombreResponsable"),
-          celularResponsable: valor("celularResponsable"),
-          correoResponsable: valor("correoResponsable"),
-          observaciones: valor("observaciones")
-        };
+        datosPendientes = recopilarDatos();
+
+        mostrarMensaje("", "");
+        mostrarRevision(datosPendientes);
+      });
+
+    document.getElementById("volverEditar")
+      .addEventListener("click", volverAlFormulario);
+
+    document.getElementById("confirmarEnvio")
+      .addEventListener("click", function() {
+
+        if (envioEnCurso || !datosPendientes) return;
 
         envioEnCurso = true;
 
-        const boton = document.getElementById("botonEnviar");
+        const boton = document.getElementById("confirmarEnvio");
         boton.disabled = true;
         boton.textContent = "Enviando solicitud...";
 
-        mostrarMensaje(
+        mostrarMensajeRevision(
           "Estamos enviando tu solicitud. Espera un momento.",
           "exito"
         );
@@ -945,18 +1125,18 @@
         temporizadorEnvio = setTimeout(function() {
           finalizarEnvio();
 
-          mostrarMensaje(
+          mostrarMensajeRevision(
             "No recibimos confirmación del servidor. Antes de volver a enviar, verifica si la solicitud fue recibida por el Museo.",
             "error"
           );
-        }, 45000);
+        }, 90000);
 
         try {
-          enviarSolicitud(datos);
+          enviarSolicitud(datosPendientes);
         } catch (error) {
           finalizarEnvio();
 
-          mostrarMensaje(
+          mostrarMensajeRevision(
             "Ocurrió un error al enviar la solicitud.",
             "error"
           );
